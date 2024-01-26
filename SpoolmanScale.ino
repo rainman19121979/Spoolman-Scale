@@ -2,6 +2,7 @@
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
+//#include <U8g2lib.h>
 #include <ArduinoJson.h>
 #include <Adafruit_GFX.h>
 #include <HX711.h>
@@ -9,11 +10,11 @@
 #include <SPI.h>
 
 // Wi-Fi Configuration
-const char* ssid = "INSERT_WIFI_NAME";
-const char* password = "INSERT_WIFI_PASSWORD";
+const char* ssid = "insertssid";
+const char* password = "insertpw";
 
 // API settings
-const char* serverName = "http://INSERT_SPOOLMAN_SERVERIP:7912/api/v1";
+const char* serverName = "http://insert-spoolman-IP-and-Port/api/v1";
 unsigned long updateInterval = 60000;
 unsigned long lastUpdateTime = 0;
 String jsonCache;
@@ -83,7 +84,8 @@ void setup() {
   // Initialize HX711
   Serial.println(F("Scale begin"));
   scale.begin(DOUT, CLK);
-  scale.set_scale(-481.9244); // Adjust this value based on your calibration
+  scale.set_scale(1235.97212); // Adjust this value based on your calibration
+  long zero_factor = scale.read_average();
   scale.tare();
 
   // Initialize RC522 RFID reader
@@ -120,7 +122,7 @@ String fetchFilamentList() {
   }
   Serial.println("Must update JSON.");
   HTTPClient http;
-  String geturl = String(serverName) + "/filament";
+  String geturl = String(serverName) + "/spool";
   http.begin(geturl);
   http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
   http.addHeader("Content-Type", "application/json");
@@ -155,9 +157,9 @@ void updateWeight(int filamentID) {
 
 void updateFilamentWeight(int filamentID, float weight) {
   HTTPClient http;
-  http.begin(String(serverName) + "/filament/" + String(filamentID));
+  http.begin(String(serverName) + "/spool/" + String(filamentID));
   http.addHeader("Content-Type", "application/json");
-  String requestData = "{\"weight\": " + String(weight) + "}";
+  String requestData = "{\"remaining_weight\": " + String(weight) + "}";
   int httpCode = http.PATCH(requestData);
   http.end();
   display.clearDisplay();
@@ -183,7 +185,7 @@ void loop() {
     currentStateCLK = digitalRead(ROTARY_CLK);
     int menuSize = doc.size();
 
-    if (currentStateCLK != lastStateCLK) {
+    if (currentStateCLK != lastStateCLK && currentStateCLK == 1) {
       if (digitalRead(ROTARY_DT) != currentStateCLK) {
         selected = (selected + 1) % menuSize;
         if (selected >= firstItemIndex + 6) {
@@ -211,8 +213,8 @@ void loop() {
           selected = 0;
           firstItemIndex = 0;  // Reset first item index when entering submenu
         } else {
-          String name = menuItem["name"];
-          String vendor = menuItem["vendor"]["name"];
+          String name = menuItem["filament"]["name"];
+          String vendor = menuItem["filament"]["vendor"]["name"];
           int id = menuItem["id"];
           performAction(name, vendor, id);
         }
@@ -242,7 +244,10 @@ void displayMenu(DynamicJsonDocument& doc, String menu, int selected) {
       display.setTextColor(SSD1306_WHITE);
     }
     display.setCursor(0, y * 10);
-    display.print(menuItem["name"].as<String>());
+    display.print(menuItem["id"].as<String>());
+    display.setCursor(20, y * 10);
+    display.print(menuItem["filament"]["name"].as<String>());
+    
     y++;
     index++;
   }
