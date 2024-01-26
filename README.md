@@ -5,12 +5,18 @@ After pressing the rotary encoder, the database is updated with the current weig
 
 Hardware:
 
-ESP32,
-HX711 Load cell (2 kg),
-0.96 inch OLED module,
-KY-040 Rotary Encoder Module,
-KDC11 ON/OFF Rocker Seitch,
-CJMCU Micro USB Breakout Board,
+ESP32
+
+HX711 Load cell (2 kg)
+
+0.96 inch OLED module
+
+KY-040 Rotary Encoder Module
+
+KDC11 ON/OFF Rocker Switch
+
+CJMCU Micro USB Breakout Board
+
 
 
 Printed Files:
