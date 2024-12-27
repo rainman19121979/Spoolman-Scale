@@ -23,3 +23,5 @@ Printed Files:
 
 https://www.printables.com/de/model/466905-filament-scale-remix
 
+Help needed:
+The wrong weight is currently being sent to Spoolman. The respective empty coil weight would still have to be deducted, unfortunately I'm a programming noob :) and I somehow can't manage it.
