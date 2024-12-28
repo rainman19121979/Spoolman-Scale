@@ -55,7 +55,7 @@ int firstItemIndex = 0; // Added this for scrolling menu
 void displayMenu(DynamicJsonDocument& doc, String menu, int selected);
 void performAction(String name, String vendor, int id);
 void updateWeight(int filamentPosition);
-void updateFilamentWeight(int filamentPosition, float weight);
+void updateFilamentWeight(int filamentPosition,float sweight, float weight);
 
 void setup() {
   Serial.begin(115200);
@@ -74,12 +74,12 @@ void setup() {
   }
   display.setRotation(2); //rotates text on OLED 1=90 degrees, 2=180 degrees
   display.display();
-  delay(2000);
+  delay(1000);
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.print("Hello OLED");
+  display.print("Spoolman ESP");
   display.display();
-  delay(2000);
+  delay(1000);
 
   // Initialize HX711
   Serial.println(F("Scale begin"));
@@ -157,10 +157,10 @@ void updateWeight(int filamentID) {
 
 void updateFilamentWeight(int filamentID, float weight) {
   HTTPClient http;
-  http.begin(String(serverName) + "/spool/" + String(filamentID));
+  http.begin(String(serverName) + "/spool/" + String(filamentID) + "/measure");
   http.addHeader("Content-Type", "application/json");
-  String requestData = "{\"remaining_weight\": " + String(weight) + "}";
-  int httpCode = http.PATCH(requestData);
+  String requestData = "{\"weight\": " + String(weight) + "}";
+  int httpCode = http.PUT(requestData);
   http.end();
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -188,7 +188,7 @@ void loop() {
     if (currentStateCLK != lastStateCLK && currentStateCLK == 1) {
       if (digitalRead(ROTARY_DT) != currentStateCLK) {
         selected = (selected + 1) % menuSize;
-        if (selected >= firstItemIndex + 6) {
+        if (selected >= firstItemIndex + 1) {
           firstItemIndex++;  // Increase first item index for scrolling down
         }
       } else {
@@ -229,29 +229,57 @@ void loop() {
 }
 
 void displayMenu(DynamicJsonDocument& doc, String menu, int selected) {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  int y = 0;
-  int index = firstItemIndex;  // Start from first item index
-  for (int i = 0; i < 6; i++) {  // Only display 6 items at most
-    if (index >= doc.size()) break;  // Break if reached the end
-    JsonObject menuItem = doc[index].as<JsonObject>();
-    if (index == selected) {
-      display.fillRect(0, y * 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
-      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-    } else {
-      display.setTextColor(SSD1306_WHITE);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+
+    int y = 0;  // Vertical position
+    int index = firstItemIndex;  // Start from the first item index
+
+    for (int i = 0; i < 1; i++) {  // Only display 1 items at most
+        if (index >= doc.size()) break;  // Break if reached the end
+
+        JsonObject menuItem = doc[index].as<JsonObject>();
+            
+        // Display item ID
+        display.setCursor(0, y * 10);
+        display.print(menuItem["id"].as<String>());
+
+        // Display item name
+        display.setCursor(20, y * 10);
+        display.print(menuItem["filament"]["name"].as<String>());
+        y++;
+        display.setCursor(50, y * 10);  
+        display.print(menuItem["filament"]["vendor"]["name"].as<String>());               
+        y++;  
+        display.setCursor(20, y * 10);  
+        display.print(menuItem["filament"]["material"].as<String>());
+        display.setCursor(70, y * 10); 
+        display.print ("o ");
+        display.print(menuItem["filament"]["diameter"].as<String>());
+        y++;  
+        display.setCursor(20, y * 10);  
+        display.print("Density   : "); 
+        display.print(menuItem["filament"]["density"].as<String>());
+        y++; 
+        float remainingWeight = menuItem["remaining_weight"].as<float>();
+        String formattedWeight = String(remainingWeight, 2);  // Format to 2 decimal places
+        display.setCursor(20, y * 10);  // Adjust cursor for the weight
+        display.print("RW : "); 
+        display.print(formattedWeight);  // Print formatted weight
+        display.print(" g"); 
+        y++;  
+        display.setCursor(20, y * 10);  
+        display.print("SW : "); 
+        display.print(menuItem["filament"]["spool_weight"].as<String>());
+        display.print(" g");  
+        y++;         
+  
+        index++;  // Move to the next item in the document
     }
-    display.setCursor(0, y * 10);
-    display.print(menuItem["id"].as<String>());
-    display.setCursor(20, y * 10);
-    display.print(menuItem["filament"]["name"].as<String>());
-    
-    y++;
-    index++;
-  }
-  display.display();
+  
+    // Render the display
+    display.display();
 }
 
 void performAction(String name, String vendor, int id) {
